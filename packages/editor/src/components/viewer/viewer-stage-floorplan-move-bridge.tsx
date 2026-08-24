@@ -89,7 +89,10 @@ export function ViewerStageFloorplanMoveBridge({
       const dx = point[0] - active.startPlan[0]
       const dy = point[1] - active.startPlan[1]
       const prefix = `translate(${dx} ${dy})`
-      active.node.setAttribute('transform', active.transform ? `${prefix} ${active.transform}` : prefix)
+      active.node.setAttribute(
+        'transform',
+        active.transform ? `${prefix} ${active.transform}` : prefix,
+      )
       event.preventDefault()
       event.stopPropagation()
     }
@@ -98,8 +101,10 @@ export function ViewerStageFloorplanMoveBridge({
       if (!active || active.pointerId !== event.pointerId) return
       const point = toPlan(active.scene, event.clientX, event.clientY) ?? active.lastPlan
       const rect = active.preview.getBoundingClientRect()
-      const inside = event.clientX >= rect.left && event.clientX <= rect.right
-        && event.clientY >= rect.top && event.clientY <= rect.bottom
+      const inside = event.clientX >= rect.left
+        && event.clientX <= rect.right
+        && event.clientY >= rect.top
+        && event.clientY <= rect.bottom
       const result = inside
         ? resolveViewerStageFloorplanMove(
             active.id,
@@ -115,6 +120,13 @@ export function ViewerStageFloorplanMoveBridge({
       event.preventDefault()
       event.stopPropagation()
     }
+    const pointerCancel = (event: PointerEvent) => {
+      const active = activeRef.current
+      if (!active || active.pointerId !== event.pointerId) return
+      cancel()
+      event.preventDefault()
+      event.stopPropagation()
+    }
     const key = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || !activeRef.current) return
       cancel()
@@ -125,13 +137,13 @@ export function ViewerStageFloorplanMoveBridge({
     root.addEventListener('pointerdown', down, true)
     window.addEventListener('pointermove', move, true)
     window.addEventListener('pointerup', up, true)
-    window.addEventListener('pointercancel', up, true)
+    window.addEventListener('pointercancel', pointerCancel, true)
     window.addEventListener('keydown', key, true)
     return () => {
       root.removeEventListener('pointerdown', down, true)
       window.removeEventListener('pointermove', move, true)
       window.removeEventListener('pointerup', up, true)
-      window.removeEventListener('pointercancel', up, true)
+      window.removeEventListener('pointercancel', pointerCancel, true)
       window.removeEventListener('keydown', key, true)
       cancel()
     }
