@@ -11,6 +11,7 @@ import {
   type FloorplanPreviewScene,
   normalizeFloorplanPreviewNodes,
 } from './floorplan-preview'
+import { ViewerStageFloorplanMoveBridge } from './viewer-stage-floorplan-move-bridge'
 import {
   normalizeViewerStageModes,
   resolveMobileViewerStageMode,
@@ -30,8 +31,10 @@ export type ViewerStageProps = {
   levelId?: string | null
   mode?: ViewerStageMode
   modes?: readonly ViewerStageMode[]
+  movableNodeIds?: readonly string[]
   onLevelChange?: (levelId: string) => void
   onModeChange?: (mode: ViewerStageMode) => void
+  onNodeMove?: (nodeId: string, delta: readonly [number, number]) => void
   onNodeSelect?: (nodeId: string) => void
   scene?: FloorplanPreviewScene | null
   selectedIds?: readonly string[]
@@ -84,8 +87,10 @@ export function ViewerStage({
   levelId,
   mode: controlledMode,
   modes,
+  movableNodeIds,
   onLevelChange,
   onModeChange,
+  onNodeMove,
   onNodeSelect,
   scene,
   selectedIds,
@@ -100,6 +105,7 @@ export function ViewerStage({
   const [internalMode, setInternalMode] = useState(() =>
     resolveViewerStageMode(defaultMode, enabledModes),
   )
+  const [stageElement, setStageElement] = useState<HTMLDivElement | null>(null)
   const activeMode = resolveViewerStageMode(controlledMode ?? internalMode, enabledModes)
   const storeLevelIds = useScene(
     useShallow((state) => (scene ? EMPTY_LEVEL_IDS : levelNodeIds(state.nodes))),
@@ -176,7 +182,15 @@ export function ViewerStage({
       className={cn('relative h-full w-full overflow-hidden bg-neutral-100', className)}
       data-pascal-navigation-sync={synchronizeNavigation ? 'on' : 'off'}
       data-pascal-viewer-stage={activeMode}
+      ref={setStageElement}
     >
+      <ViewerStageFloorplanMoveBridge
+        movableNodeIds={movableNodeIds}
+        onNodeMove={onNodeMove}
+        onNodeSelect={onNodeSelect}
+        root={stageElement}
+      />
+
       {showCompass && compassHost === undefined ? (
         <div className="pointer-events-none absolute inset-0 z-30" ref={setInternalCompassHost} />
       ) : null}
