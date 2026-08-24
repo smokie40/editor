@@ -55,15 +55,20 @@ function levelNodeIds(nodes: Record<string, AnyNode>) {
     .map((node) => node.id)
 }
 
-function selectViewerLevel(nodes: Record<string, AnyNode>, levelId: string) {
+function selectViewerLevel(
+  nodes: Record<string, AnyNode>,
+  levelId: string,
+  selectedIds?: readonly string[],
+) {
   const level = nodes[levelId as AnyNodeId]
   if (level?.type !== 'level') return
   const building = level.parentId ? nodes[level.parentId as AnyNodeId] : null
+  const validSelectedIds = (selectedIds ?? []).filter((id) => nodes[id as AnyNodeId] !== undefined)
   const viewer = useViewer.getState()
   viewer.setSelection({
     buildingId: building?.type === 'building' ? building.id : null,
     levelId: level.id,
-    selectedIds: [],
+    selectedIds: validSelectedIds as AnyNodeId[],
     zoneId: null,
   })
   viewer.setLevelMode('solo')
@@ -149,10 +154,10 @@ export function ViewerStage({
   const chooseLevel = useCallback(
     (nextLevelId: string, notify = true) => {
       setInternalLevelId(nextLevelId)
-      selectViewerLevel(externalNodes ?? useScene.getState().nodes, nextLevelId)
+      selectViewerLevel(externalNodes ?? useScene.getState().nodes, nextLevelId, selectedIds)
       if (notify) onLevelChange?.(nextLevelId)
     },
-    [externalNodes, onLevelChange],
+    [externalNodes, onLevelChange, selectedIds],
   )
 
   useEffect(() => {
