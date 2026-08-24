@@ -101,10 +101,11 @@ export function ViewerStageFloorplanMoveBridge({
       if (!active || active.pointerId !== event.pointerId) return
       const point = toPlan(active.scene, event.clientX, event.clientY) ?? active.lastPlan
       const rect = active.preview.getBoundingClientRect()
-      const inside = event.clientX >= rect.left
-        && event.clientX <= rect.right
-        && event.clientY >= rect.top
-        && event.clientY <= rect.bottom
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
       const result = inside
         ? resolveViewerStageFloorplanMove(
             active.id,
