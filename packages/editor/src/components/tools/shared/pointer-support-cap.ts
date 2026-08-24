@@ -181,7 +181,7 @@ export function resolvePointerSupportSurface(
     // convention — the election owns the invariant.
     const interactingNodeId = scopeNodeId(useInteractionScope.getState().scope)
     const isEligibleCandidate = (nodeId: AnyNodeId) => {
-      let current = nodes[nodeId]
+      let current: (typeof nodes)[AnyNodeId] | undefined = nodes[nodeId]
       const visited = new Set<AnyNodeId>()
       while (current && !visited.has(current.id)) {
         if (current.id === interactingNodeId) return false

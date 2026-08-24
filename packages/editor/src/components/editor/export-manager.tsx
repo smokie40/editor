@@ -14,7 +14,7 @@ import { exportSceneToPrint3mf } from '../../lib/print-3mf'
 import { filterPreparedSceneForPrintContent } from '../../lib/print-content-scope'
 import { exportSceneToPrintStl, mergePrintExportDiagnostics } from '../../lib/print-export'
 import { applySemanticPrintFeatureThickness } from '../../lib/print-feature-thickness'
-import { compileSemanticPrintShellWithManifold } from '../../lib/print-shell-compiler-manifold-worker'
+import { getSemanticPrintShellCompiler } from '../../lib/print-shell-compiler-registry'
 import useEditor from '../../store/use-editor'
 
 // prepareSceneForExport neutralises container meshes (door/window hitbox roots,
@@ -95,6 +95,12 @@ export function ExportManager() {
           const printFormat = format === 'print-3mf' ? '3mf' : 'stl'
           const scale = options.printScale ?? 100
           const compileShells = printContent === 'structure'
+          const compileShell = compileShells ? getSemanticPrintShellCompiler() : null
+          if (compileShells && !compileShell) {
+            throw new Error(
+              'Semantic print-shell compilation requires the optional @pascal-app/editor/print-manifold backend.',
+            )
+          }
           const minimumFeatureMm = compileShells ? options.printMinimumFeatureMm : undefined
           if (options.printScope === 'levels') {
             const plinth =
@@ -110,7 +116,7 @@ export function ExportManager() {
               plinth,
               minimumFeatureMm,
               compileShells,
-              compileShell: compileShells ? compileSemanticPrintShellWithManifold : undefined,
+              compileShell: compileShell ?? undefined,
             })
             const blob = new Blob([data], {
               type: printFormat === '3mf' ? 'model/3mf' : 'application/zip',
@@ -125,9 +131,7 @@ export function ExportManager() {
           if (options.printBase === 'plinth') {
             throw new Error('Plinth generation is available only for per-level print packages.')
           }
-          const compiled = compileShells
-            ? await compileSemanticPrintShellWithManifold(exportScene, nodes)
-            : null
+          const compiled = compileShell ? await compileShell(exportScene, nodes) : null
           try {
             const printSource = compiled ? (compiled.scene ?? new THREE.Group()) : exportScene
             const printOptions = {

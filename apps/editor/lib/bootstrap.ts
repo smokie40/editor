@@ -8,6 +8,7 @@ import {
   registerNode,
 } from '@pascal-app/core'
 import { registerEditorHostPanel } from '@pascal-app/editor'
+import '@pascal-app/editor/print-manifold'
 import { builtinPlugin } from '@pascal-app/nodes'
 import { bonesHostPanel, bonesPlugin } from '@pascal-app/plugin-bones'
 import { streetscapeHostPanel, streetscapePlugin } from '@pascal-app/plugin-streetscape'

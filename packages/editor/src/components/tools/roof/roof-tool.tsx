@@ -14,7 +14,6 @@ import {
   type WallNode,
   wallSegmentAnchors,
 } from '@pascal-app/core'
-import { clearSurfacePlanSnapFeedback, resolveSurfacePlanPointSnap } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -29,6 +28,10 @@ import {
 import { markToolCancelConsumed } from '../../../hooks/use-keyboard'
 import { EDITOR_LAYER } from '../../../lib/constants'
 import { sfxEmitter } from '../../../lib/sfx-bus'
+import {
+  clearSurfacePlanSnapFeedback,
+  resolveSurfacePlanPointSnap,
+} from '../../../lib/surface-plan-snap'
 import { snapWorldXZForActiveBuilding } from '../../../lib/world-grid-snap'
 import useEditor, { isGridSnapActive, isMagneticSnapActive } from '../../../store/use-editor'
 import { useFloorplanDraftPreview } from '../../../store/use-floorplan-draft-preview'
