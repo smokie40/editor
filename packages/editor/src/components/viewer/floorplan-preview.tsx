@@ -82,9 +82,10 @@ const READ_ONLY_PALETTE: FloorplanPalette = {
 }
 const EMPTY_PREVIEW_NODES: Record<string, AnyNode> = {}
 const EMPTY_INSTALLED_PLUGINS: readonly string[] = []
+const NODE_SELECT_DRAG_THRESHOLD_PX = 4
 
 export type FloorplanPreviewScene = {
-  nodes: Record<string, AnyNode>
+  nodes: Readonly<Record<string, unknown>>
   installedPlugins?: readonly string[]
 }
 
@@ -94,7 +95,9 @@ export type FloorplanPreviewProps = {
   levelId?: string | null
   navigationVisible?: boolean
   onLevelChange?: (levelId: string) => void
+  onNodeSelect?: (nodeId: string) => void
   scene?: FloorplanPreviewScene | null
+  selectedIds?: readonly string[]
   showCompass?: boolean
   showLevelSelector?: boolean
   synchronizeNavigation?: boolean
@@ -107,6 +110,7 @@ type DragState = {
   point: PointerPoint
   rotationDeg: number
   viewBox: FloorplanViewBox
+  nodeId?: string
 }
 type PinchState = {
   pointerIds: [number, number]
@@ -150,6 +154,11 @@ function levelLabel(level: AnyNode): string {
   return `Level ${ordinal}`
 }
 
+function floorplanNodeIdFromEventTarget(target: EventTarget | null): string | undefined {
+  if (!(target instanceof Element)) return undefined
+  return target.closest('[data-floorplan-node-id]')?.getAttribute('data-floorplan-node-id') ?? undefined
+}
+
 function collectLevelTree(root: AnyNode, nodes: Record<string, AnyNode>): AnyNode[] {
   const result: AnyNode[] = [root]
   const seen = new Set<string>()
@@ -168,7 +177,7 @@ function collectLevelTree(root: AnyNode, nodes: Record<string, AnyNode>): AnyNod
 }
 
 export function normalizeFloorplanPreviewNodes(
-  nodes: Record<string, unknown>,
+  nodes: Readonly<Record<string, unknown>>,
 ): Record<string, AnyNode> {
   const normalized: Record<string, AnyNode> = {}
   for (const [id, node] of Object.entries(nodes)) {
@@ -211,6 +220,7 @@ function buildFloorplanGeometries(
   level: AnyNode,
   unit: 'metric' | 'imperial',
   metricNotation: 'meters' | 'millimeters',
+  selectedNodeIds: ReadonlySet<string>,
 ): FloorplanRenderEntry[] {
   const building = level.parentId ? nodes[level.parentId] : undefined
   const levelTree = collectLevelTree(level, nodes)
@@ -282,7 +292,7 @@ function buildFloorplanGeometries(
       nodes,
       {
         automaticDimensions: false,
-        selected: false,
+        selected: selectedNodeIds.has(node.id),
         unit,
         metricNotation,
         purpose: 'document',
@@ -316,7 +326,9 @@ export function FloorplanPreview({
   levelId,
   navigationVisible = true,
   onLevelChange,
+  onNodeSelect,
   scene,
+  selectedIds = [],
   showCompass = true,
   showLevelSelector = true,
   synchronizeNavigation = false,
@@ -333,6 +345,7 @@ export function FloorplanPreview({
   )
   const nodes = externalNodes ?? storeNodes
   const installedPlugins = scene ? scene.installedPlugins : storeInstalledPlugins
+  const selectedNodeIds = useMemo(() => new Set(selectedIds), [selectedIds])
   const levels = useMemo(
     () =>
       Object.values(nodes)
@@ -363,9 +376,16 @@ export function FloorplanPreview({
   const renderEntries = useMemo(
     () =>
       activeLevel
-        ? buildFloorplanGeometries(nodes, installedPlugins, activeLevel, unit, metricNotation)
+        ? buildFloorplanGeometries(
+            nodes,
+            installedPlugins,
+            activeLevel,
+            unit,
+            metricNotation,
+            selectedNodeIds,
+          )
         : [],
-    [activeLevel, installedPlugins, metricNotation, nodes, unit],
+    [activeLevel, installedPlugins, metricNotation, nodes, selectedNodeIds, unit],
   )
   const framingEntries = useMemo(() => {
     const structural = renderEntries.filter((entry) => entry.includeInInitialFit)
@@ -664,12 +684,14 @@ export function FloorplanPreview({
     pointersRef.current.set(event.pointerId, point)
     const pointers = Array.from(pointersRef.current.entries())
     if (pointers.length === 1) {
+      const mode = event.pointerType === 'mouse' && event.button === 2 ? 'rotate' : 'pan'
       dragRef.current = {
-        mode: event.pointerType === 'mouse' && event.button === 2 ? 'rotate' : 'pan',
+        mode,
         pointerId: event.pointerId,
         point,
         rotationDeg: rotationDegRef.current,
         viewBox: viewBoxRef.current,
+        ...(mode === 'pan' ? { nodeId: floorplanNodeIdFromEventTarget(event.target) } : {}),
       }
       pinchRef.current = null
     } else {
@@ -751,30 +773,46 @@ export function FloorplanPreview({
     [buildingRotationDeg, presentRotation, presentViewBox, publishNavigation, updateLocalViewBox],
   )
 
-  const onPointerUp = useCallback((event: ReactPointerEvent<SVGSVGElement>) => {
-    pointersRef.current.delete(event.pointerId)
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-    pinchRef.current = null
-    const [remaining] = pointersRef.current.entries()
-    if (remaining) {
-      dragRef.current = {
-        mode: 'pan',
-        pointerId: remaining[0],
-        point: remaining[1],
-        rotationDeg: rotationDegRef.current,
-        viewBox: viewBoxRef.current,
+  const onPointerUp = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      const completedDrag = dragRef.current
+      pointersRef.current.delete(event.pointerId)
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
       }
-      setIsRotating(false)
-    } else {
-      dragRef.current = null
-      setIsPanning(false)
-      setIsRotating(false)
-      setViewBox(viewBoxRef.current)
-      setRotationDeg(rotationDegRef.current)
-    }
-  }, [])
+      pinchRef.current = null
+      const [remaining] = pointersRef.current.entries()
+      if (remaining) {
+        dragRef.current = {
+          mode: 'pan',
+          pointerId: remaining[0],
+          point: remaining[1],
+          rotationDeg: rotationDegRef.current,
+          viewBox: viewBoxRef.current,
+        }
+        setIsRotating(false)
+      } else {
+        dragRef.current = null
+        setIsPanning(false)
+        setIsRotating(false)
+        setViewBox(viewBoxRef.current)
+        setRotationDeg(rotationDegRef.current)
+        if (
+          onNodeSelect
+          && completedDrag?.mode === 'pan'
+          && completedDrag.pointerId === event.pointerId
+          && completedDrag.nodeId
+          && Math.hypot(
+            event.clientX - completedDrag.point.x,
+            event.clientY - completedDrag.point.y,
+          ) <= NODE_SELECT_DRAG_THRESHOLD_PX
+        ) {
+          onNodeSelect(completedDrag.nodeId)
+        }
+      }
+    },
+    [onNodeSelect],
+  )
 
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -941,7 +979,7 @@ export function FloorplanPreview({
             y={viewBox.y}
           />
           <g
-            pointerEvents="none"
+            pointerEvents={onNodeSelect ? 'auto' : 'none'}
             ref={sceneRef}
             transform={
               FLOORPLAN_VIEW_ROTATION_DEG + rotationDeg - buildingRotationDeg === 0
@@ -951,6 +989,7 @@ export function FloorplanPreview({
           >
             {renderEntries.map((entry) => (
               <g
+                data-floorplan-node-id={entry.id}
                 key={entry.id}
                 ref={(element) => {
                   if (element) fitElementRefs.current.set(entry.id, element)
@@ -959,7 +998,7 @@ export function FloorplanPreview({
               >
                 <FloorplanGeometryRenderer
                   geometry={entry.geometry}
-                  pointerEventsOverride="none"
+                  pointerEventsOverride={onNodeSelect ? 'visiblePainted' : 'none'}
                   screenUnitsPerPixel={screenUnitsPerPixel}
                 />
               </g>
