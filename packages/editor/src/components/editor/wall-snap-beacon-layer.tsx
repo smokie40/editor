@@ -15,13 +15,13 @@ import {
   useScene,
   type WallNode,
 } from '@pascal-app/core'
-import { useWallSnapIndicator, type WallSnapKind } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { useFrame } from '@react-three/fiber'
 import { memo, useMemo, useRef } from 'react'
 import { BoxGeometry, CircleGeometry, CylinderGeometry, type Group } from 'three'
 import { MeshBasicNodeMaterial } from 'three/webgpu'
 import { EDITOR_LAYER } from '../../lib/constants'
+import useWallSnapIndicator, { type WallSnapKind } from '../../store/use-wall-snap-indicator'
 
 /**
  * "Magnetic" wall-snap beacon for the 3D editor — a vertical marker that
