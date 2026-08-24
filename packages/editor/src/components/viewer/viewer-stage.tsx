@@ -6,7 +6,11 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { cn } from '../../lib/utils'
-import { FloorplanPreview, type FloorplanPreviewScene } from './floorplan-preview'
+import {
+  FloorplanPreview,
+  type FloorplanPreviewScene,
+  normalizeFloorplanPreviewNodes,
+} from './floorplan-preview'
 import {
   normalizeViewerStageModes,
   resolveMobileViewerStageMode,
@@ -28,7 +32,9 @@ export type ViewerStageProps = {
   modes?: readonly ViewerStageMode[]
   onLevelChange?: (levelId: string) => void
   onModeChange?: (mode: ViewerStageMode) => void
+  onNodeSelect?: (nodeId: string) => void
   scene?: FloorplanPreviewScene | null
+  selectedIds?: readonly string[]
   showCompass?: boolean
   showLevelSelector?: boolean
   showSwitcher?: boolean
@@ -75,7 +81,9 @@ export function ViewerStage({
   modes,
   onLevelChange,
   onModeChange,
+  onNodeSelect,
   scene,
+  selectedIds,
   showCompass = true,
   showLevelSelector = true,
   showSwitcher = true,
@@ -91,7 +99,14 @@ export function ViewerStage({
   const storeLevelIds = useScene(
     useShallow((state) => (scene ? EMPTY_LEVEL_IDS : levelNodeIds(state.nodes))),
   )
-  const externalLevelIds = useMemo(() => (scene ? levelNodeIds(scene.nodes) : null), [scene])
+  const externalNodes = useMemo(
+    () => (scene ? normalizeFloorplanPreviewNodes(scene.nodes) : null),
+    [scene],
+  )
+  const externalLevelIds = useMemo(
+    () => (externalNodes ? levelNodeIds(externalNodes) : null),
+    [externalNodes],
+  )
   const levelIds = externalLevelIds ?? storeLevelIds
   const selectedLevelId = useViewer((state) => state.selection.levelId)
   const [internalLevelId, setInternalLevelId] = useState<string | null>(null)
@@ -134,10 +149,10 @@ export function ViewerStage({
   const chooseLevel = useCallback(
     (nextLevelId: string, notify = true) => {
       setInternalLevelId(nextLevelId)
-      selectViewerLevel(scene?.nodes ?? useScene.getState().nodes, nextLevelId)
+      selectViewerLevel(externalNodes ?? useScene.getState().nodes, nextLevelId)
       if (notify) onLevelChange?.(nextLevelId)
     },
-    [onLevelChange, scene],
+    [externalNodes, onLevelChange],
   )
 
   useEffect(() => {
@@ -206,7 +221,9 @@ export function ViewerStage({
             levelId={levelId ?? internalLevelId}
             navigationVisible={activeMode !== '3d'}
             onLevelChange={chooseLevel}
+            onNodeSelect={onNodeSelect}
             scene={scene}
+            selectedIds={selectedIds}
             showCompass={showCompass}
             showLevelSelector={showLevelSelector}
             synchronizeNavigation={synchronizeNavigation}
