@@ -15,4 +15,5 @@ export {
 } from './components/viewer/floorplan-preview'
 export { ViewerStage, type ViewerStageProps } from './components/viewer/viewer-stage'
 export type { ViewerStageMode } from './components/viewer/viewer-stage-modes'
+export { EDITOR_LAYER } from './lib/constants'
 export { default as useEditor } from './store/use-editor'

@@ -1,7 +1,7 @@
 'use client'
 
 import type { BlockNode } from '@pascal-app/core'
-import { EDITOR_LAYER } from '@pascal-app/editor'
+import { EDITOR_LAYER } from '@pascal-app/editor/embed'
 import { useViewer } from '@pascal-app/viewer'
 import { useEffect, useMemo } from 'react'
 import { Color, type Material, Mesh } from 'three'
