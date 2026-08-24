@@ -111,15 +111,16 @@ export function ViewerStageFloorplanMoveBridge({
         event.clientX <= rect.right &&
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom
-      const result = inside && movableRef.current.has(active.id)
-        ? resolveViewerStageFloorplanMove(
-            active.id,
-            active.startClient,
-            [event.clientX, event.clientY],
-            active.startPlan,
-            point,
-          )
-        : null
+      const result =
+        inside && movableRef.current.has(active.id)
+          ? resolveViewerStageFloorplanMove(
+              active.id,
+              active.startClient,
+              [event.clientX, event.clientY],
+              active.startPlan,
+              point,
+            )
+          : null
       restore(active)
       activeRef.current = null
       const commit = onNodeMoveRef.current
