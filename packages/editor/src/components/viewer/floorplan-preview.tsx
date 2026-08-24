@@ -156,7 +156,9 @@ function levelLabel(level: AnyNode): string {
 
 function floorplanNodeIdFromEventTarget(target: EventTarget | null): string | undefined {
   if (!(target instanceof Element)) return undefined
-  return target.closest('[data-floorplan-node-id]')?.getAttribute('data-floorplan-node-id') ?? undefined
+  return (
+    target.closest('[data-floorplan-node-id]')?.getAttribute('data-floorplan-node-id') ?? undefined
+  )
 }
 
 function collectLevelTree(root: AnyNode, nodes: Record<string, AnyNode>): AnyNode[] {
@@ -798,11 +800,11 @@ export function FloorplanPreview({
         setViewBox(viewBoxRef.current)
         setRotationDeg(rotationDegRef.current)
         if (
-          onNodeSelect
-          && completedDrag?.mode === 'pan'
-          && completedDrag.pointerId === event.pointerId
-          && completedDrag.nodeId
-          && Math.hypot(
+          onNodeSelect &&
+          completedDrag?.mode === 'pan' &&
+          completedDrag.pointerId === event.pointerId &&
+          completedDrag.nodeId &&
+          Math.hypot(
             event.clientX - completedDrag.point.x,
             event.clientY - completedDrag.point.y,
           ) <= NODE_SELECT_DRAG_THRESHOLD_PX
