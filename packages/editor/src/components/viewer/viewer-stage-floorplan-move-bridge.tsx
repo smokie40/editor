@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { resolveViewerStageFloorplanMove } from './viewer-stage-floorplan-move'
 
 type Point = readonly [number, number]
@@ -43,25 +43,30 @@ export function ViewerStageFloorplanMoveBridge({
   onNodeSelect?: (nodeId: string) => void
   root: HTMLElement | null
 }) {
-  const movable = useMemo(() => new Set(movableNodeIds ?? []), [movableNodeIds])
+  const movableRef = useRef<ReadonlySet<string>>(new Set())
+  const onNodeMoveRef = useRef(onNodeMove)
+  const onNodeSelectRef = useRef(onNodeSelect)
   const activeRef = useRef<Active | null>(null)
+  movableRef.current = new Set(movableNodeIds ?? [])
+  onNodeMoveRef.current = onNodeMove
+  onNodeSelectRef.current = onNodeSelect
 
   useEffect(() => {
-    if (!(root && onNodeMove && movable.size > 0)) return
+    if (!root) return
 
     const cancel = () => {
       if (activeRef.current) restore(activeRef.current)
       activeRef.current = null
     }
     const down = (event: PointerEvent) => {
-      if (event.button !== 0 || !(event.target instanceof Element)) return
+      if (event.button !== 0 || !(event.target instanceof Element) || !onNodeMoveRef.current) return
       const preview = event.target.closest('[data-floorplan-preview]')
       const node = event.target.closest('[data-floorplan-node-id]')
       if (!(preview instanceof SVGSVGElement) || !(node instanceof SVGGElement)) return
       if (!root.contains(preview)) return
       const id = node.getAttribute('data-floorplan-node-id')
       const scene = node.parentElement
-      if (!(id && movable.has(id) && scene instanceof SVGGElement)) return
+      if (!(id && movableRef.current.has(id) && scene instanceof SVGGElement)) return
       const startPlan = toPlan(scene, event.clientX, event.clientY)
       if (!startPlan) return
       cancel()
@@ -76,7 +81,7 @@ export function ViewerStageFloorplanMoveBridge({
         startPlan,
         lastPlan: startPlan,
       }
-      onNodeSelect?.(id)
+      onNodeSelectRef.current?.(id)
       event.preventDefault()
       event.stopPropagation()
     }
@@ -106,7 +111,7 @@ export function ViewerStageFloorplanMoveBridge({
         event.clientX <= rect.right &&
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom
-      const result = inside
+      const result = inside && movableRef.current.has(active.id)
         ? resolveViewerStageFloorplanMove(
             active.id,
             active.startClient,
@@ -117,7 +122,8 @@ export function ViewerStageFloorplanMoveBridge({
         : null
       restore(active)
       activeRef.current = null
-      if (result) onNodeMove(result.nodeId, result.delta)
+      const commit = onNodeMoveRef.current
+      if (result && commit) commit(result.nodeId, result.delta)
       event.preventDefault()
       event.stopPropagation()
     }
@@ -148,7 +154,7 @@ export function ViewerStageFloorplanMoveBridge({
       window.removeEventListener('keydown', key, true)
       cancel()
     }
-  }, [movable, onNodeMove, onNodeSelect, root])
+  }, [root])
 
   return null
 }
