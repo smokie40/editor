@@ -5,6 +5,10 @@ export type ViewerStageFloorplanMove = Readonly<{
   delta: readonly [number, number]
 }>
 
+function finitePoint(value: readonly [number, number]): boolean {
+  return value.every((entry) => Number.isFinite(entry))
+}
+
 export function resolveViewerStageFloorplanMove(
   nodeId: string,
   startClient: readonly [number, number],
@@ -13,8 +17,21 @@ export function resolveViewerStageFloorplanMove(
   endPlan: readonly [number, number],
   thresholdPx = 4,
 ): ViewerStageFloorplanMove | null {
-  if (Math.hypot(endClient[0] - startClient[0], endClient[1] - startClient[1]) <= thresholdPx) return null
+  if (
+    !nodeId.trim()
+    || !finitePoint(startClient)
+    || !finitePoint(endClient)
+    || !finitePoint(startPlan)
+    || !finitePoint(endPlan)
+    || !Number.isFinite(thresholdPx)
+    || thresholdPx < 0
+  ) return null
+
+  if (
+    Math.hypot(endClient[0] - startClient[0], endClient[1] - startClient[1]) <= thresholdPx
+  ) return null
+
   const delta = [endPlan[0] - startPlan[0], endPlan[1] - startPlan[1]] as const
-  if (!delta.every(Number.isFinite) || Math.hypot(delta[0], delta[1]) <= 1e-9) return null
+  if (Math.hypot(delta[0], delta[1]) <= 1e-9) return null
   return Object.freeze({ nodeId, delta })
 }
