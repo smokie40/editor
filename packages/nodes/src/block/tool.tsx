@@ -22,7 +22,7 @@ import {
   useEditor,
   useInteractionScope,
   useRegistryToolContext,
-} from '@pascal-app/editor'
+} from '@pascal-app/editor/embed'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Group } from 'three'
