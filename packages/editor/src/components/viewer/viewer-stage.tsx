@@ -193,10 +193,7 @@ export function ViewerStage({
         onNodeSelect={onNodeSelect}
         root={stageElement}
       />
-      <ViewerStageFloorplanPointPickBridge
-        onPlanPointPick={onPlanPointPick}
-        root={stageElement}
-      />
+      <ViewerStageFloorplanPointPickBridge onPlanPointPick={onPlanPointPick} root={stageElement} />
 
       {showCompass && compassHost === undefined ? (
         <div className="pointer-events-none absolute inset-0 z-30" ref={setInternalCompassHost} />
