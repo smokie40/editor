@@ -52,7 +52,8 @@ export function ViewerStageFloorplanPointPickBridge({
         !(event.target instanceof Element) ||
         !callbackRef.current ||
         event.target.closest('[data-floorplan-node-id]')
-      ) return
+      )
+        return
       const preview = event.target.closest('[data-floorplan-preview]')
       if (!(preview instanceof SVGSVGElement) || !root.contains(preview)) return
       const scene = floorplanScene(preview)
@@ -76,7 +77,11 @@ export function ViewerStageFloorplanPointPickBridge({
         event.clientX <= rect.right &&
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom
-      if (!inside || (event.target instanceof Element && event.target.closest('[data-floorplan-node-id]'))) return
+      if (
+        !inside ||
+        (event.target instanceof Element && event.target.closest('[data-floorplan-node-id]'))
+      )
+        return
       const point = resolveViewerStageFloorplanPointPick(
         active.startClient,
         [event.clientX, event.clientY],
