@@ -41,11 +41,6 @@ export function resolveViewerStageFloorplanNodePointPick(
 ): ViewerStageFloorplanNodePointPick | null {
   const nodeId = startNodeId.trim()
   if (!nodeId || endNodeId !== startNodeId) return null
-  const point = resolveViewerStageFloorplanPointPick(
-    startClient,
-    endClient,
-    planPoint,
-    thresholdPx,
-  )
+  const point = resolveViewerStageFloorplanPointPick(startClient, endClient, planPoint, thresholdPx)
   return point ? Object.freeze({ nodeId, point }) : null
 }
