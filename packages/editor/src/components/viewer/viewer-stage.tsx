@@ -37,6 +37,7 @@ export type ViewerStageProps = {
   onModeChange?: (mode: ViewerStageMode) => void
   onNodeMove?: (nodeId: string, delta: readonly [number, number]) => void
   onNodeSelect?: (nodeId: string) => void
+  onPlanNodePointPick?: (nodeId: string, point: readonly [number, number]) => void
   onPlanPointPick?: (point: readonly [number, number]) => void
   scene?: FloorplanPreviewScene | null
   selectedIds?: readonly string[]
@@ -94,6 +95,7 @@ export function ViewerStage({
   onModeChange,
   onNodeMove,
   onNodeSelect,
+  onPlanNodePointPick,
   onPlanPointPick,
   scene,
   selectedIds,
@@ -193,7 +195,11 @@ export function ViewerStage({
         onNodeSelect={onNodeSelect}
         root={stageElement}
       />
-      <ViewerStageFloorplanPointPickBridge onPlanPointPick={onPlanPointPick} root={stageElement} />
+      <ViewerStageFloorplanPointPickBridge
+        onPlanNodePointPick={onPlanNodePointPick}
+        onPlanPointPick={onPlanPointPick}
+        root={stageElement}
+      />
 
       {showCompass && compassHost === undefined ? (
         <div className="pointer-events-none absolute inset-0 z-30" ref={setInternalCompassHost} />

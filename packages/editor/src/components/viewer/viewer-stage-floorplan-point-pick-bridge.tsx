@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { resolveViewerStageFloorplanPointPick } from './viewer-stage-floorplan-point-pick'
+import {
+  resolveViewerStageFloorplanNodePointPick,
+  resolveViewerStageFloorplanPointPick,
+} from './viewer-stage-floorplan-point-pick'
 
 type Point = readonly [number, number]
 type Active = {
@@ -9,6 +12,7 @@ type Active = {
   preview: SVGSVGElement
   startClient: Point
   startPlan: Point
+  nodeId: string | null
 }
 
 function floorplanScene(preview: SVGSVGElement): SVGGElement | null {
@@ -16,6 +20,12 @@ function floorplanScene(preview: SVGSVGElement): SVGGElement | null {
     if (child instanceof SVGGElement) return child
   }
   return null
+}
+
+function floorplanNodeId(target: Element): string | null {
+  const node = target.closest('[data-floorplan-node-id]')
+  const id = node?.getAttribute('data-floorplan-node-id')?.trim()
+  return id ? id : null
 }
 
 function toPlan(scene: SVGGElement, clientX: number, clientY: number): Point | null {
@@ -30,15 +40,19 @@ function toPlan(scene: SVGGElement, clientX: number, clientY: number): Point | n
 }
 
 export function ViewerStageFloorplanPointPickBridge({
+  onPlanNodePointPick,
   onPlanPointPick,
   root,
 }: {
+  onPlanNodePointPick?: (nodeId: string, point: Point) => void
   onPlanPointPick?: (point: Point) => void
   root: HTMLElement | null
 }) {
-  const callbackRef = useRef(onPlanPointPick)
+  const nodeCallbackRef = useRef(onPlanNodePointPick)
+  const pointCallbackRef = useRef(onPlanPointPick)
   const activeRef = useRef<Active | null>(null)
-  callbackRef.current = onPlanPointPick
+  nodeCallbackRef.current = onPlanNodePointPick
+  pointCallbackRef.current = onPlanPointPick
 
   useEffect(() => {
     if (!root) return
@@ -47,13 +61,9 @@ export function ViewerStageFloorplanPointPickBridge({
       activeRef.current = null
     }
     const down = (event: PointerEvent) => {
-      if (
-        event.button !== 0 ||
-        !(event.target instanceof Element) ||
-        !callbackRef.current ||
-        event.target.closest('[data-floorplan-node-id]')
-      )
-        return
+      if (event.button !== 0 || !(event.target instanceof Element)) return
+      const nodeId = floorplanNodeId(event.target)
+      if (nodeId ? !nodeCallbackRef.current : !pointCallbackRef.current) return
       const preview = event.target.closest('[data-floorplan-preview]')
       if (!(preview instanceof SVGSVGElement) || !root.contains(preview)) return
       const scene = floorplanScene(preview)
@@ -65,6 +75,7 @@ export function ViewerStageFloorplanPointPickBridge({
         preview,
         startClient: [event.clientX, event.clientY],
         startPlan,
+        nodeId,
       }
     }
     const up = (event: PointerEvent) => {
@@ -77,17 +88,28 @@ export function ViewerStageFloorplanPointPickBridge({
         event.clientX <= rect.right &&
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom
-      if (
-        !inside ||
-        (event.target instanceof Element && event.target.closest('[data-floorplan-node-id]'))
-      )
+      if (!inside || !(event.target instanceof Element)) return
+
+      const endClient = [event.clientX, event.clientY] as const
+      const endNodeId = floorplanNodeId(event.target)
+      if (active.nodeId) {
+        const pick = resolveViewerStageFloorplanNodePointPick(
+          active.nodeId,
+          endNodeId,
+          active.startClient,
+          endClient,
+          active.startPlan,
+        )
+        if (pick) nodeCallbackRef.current?.(pick.nodeId, pick.point)
         return
+      }
+      if (endNodeId) return
       const point = resolveViewerStageFloorplanPointPick(
         active.startClient,
-        [event.clientX, event.clientY],
+        endClient,
         active.startPlan,
       )
-      if (point) callbackRef.current?.(point)
+      if (point) pointCallbackRef.current?.(point)
     }
     const pointerCancel = (event: PointerEvent) => {
       if (activeRef.current?.pointerId === event.pointerId) cancel()
