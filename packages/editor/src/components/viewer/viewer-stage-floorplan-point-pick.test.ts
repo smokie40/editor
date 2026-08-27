@@ -3,7 +3,9 @@ import { resolveViewerStageFloorplanPointPick } from './viewer-stage-floorplan-p
 
 describe('viewer stage floorplan host point pick', () => {
   test('returns the plan-local point for a click-sized gesture', () => {
-    expect(resolveViewerStageFloorplanPointPick([10, 10], [12, 11], [1.25, 3.5])).toEqual([1.25, 3.5])
+    expect(resolveViewerStageFloorplanPointPick([10, 10], [12, 11], [1.25, 3.5])).toEqual([
+      1.25, 3.5,
+    ])
   })
 
   test('does not treat a pan as a point pick', () => {
