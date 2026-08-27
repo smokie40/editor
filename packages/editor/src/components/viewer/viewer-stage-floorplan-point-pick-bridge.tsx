@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { resolveViewerStageFloorplanPointPick } from './viewer-stage-floorplan-point-pick'
+import {
+  resolveViewerStageFloorplanNodePointPick,
+  resolveViewerStageFloorplanPointPick,
+} from './viewer-stage-floorplan-point-pick'
 
 type Point = readonly [number, number]
 type Active = {
@@ -87,16 +90,26 @@ export function ViewerStageFloorplanPointPickBridge({
         event.clientY <= rect.bottom
       if (!inside || !(event.target instanceof Element)) return
 
+      const endClient = [event.clientX, event.clientY] as const
       const endNodeId = floorplanNodeId(event.target)
-      if (active.nodeId !== endNodeId) return
+      if (active.nodeId) {
+        const pick = resolveViewerStageFloorplanNodePointPick(
+          active.nodeId,
+          endNodeId,
+          active.startClient,
+          endClient,
+          active.startPlan,
+        )
+        if (pick) nodeCallbackRef.current?.(pick.nodeId, pick.point)
+        return
+      }
+      if (endNodeId) return
       const point = resolveViewerStageFloorplanPointPick(
         active.startClient,
-        [event.clientX, event.clientY],
+        endClient,
         active.startPlan,
       )
-      if (!point) return
-      if (active.nodeId) nodeCallbackRef.current?.(active.nodeId, point)
-      else pointCallbackRef.current?.(point)
+      if (point) pointCallbackRef.current?.(point)
     }
     const pointerCancel = (event: PointerEvent) => {
       if (activeRef.current?.pointerId === event.pointerId) cancel()
