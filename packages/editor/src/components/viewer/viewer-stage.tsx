@@ -12,6 +12,7 @@ import {
   normalizeFloorplanPreviewNodes,
 } from './floorplan-preview'
 import { ViewerStageFloorplanMoveBridge } from './viewer-stage-floorplan-move-bridge'
+import { ViewerStageFloorplanPointPickBridge } from './viewer-stage-floorplan-point-pick-bridge'
 import {
   normalizeViewerStageModes,
   resolveMobileViewerStageMode,
@@ -36,6 +37,7 @@ export type ViewerStageProps = {
   onModeChange?: (mode: ViewerStageMode) => void
   onNodeMove?: (nodeId: string, delta: readonly [number, number]) => void
   onNodeSelect?: (nodeId: string) => void
+  onPlanPointPick?: (point: readonly [number, number]) => void
   scene?: FloorplanPreviewScene | null
   selectedIds?: readonly string[]
   showCompass?: boolean
@@ -92,6 +94,7 @@ export function ViewerStage({
   onModeChange,
   onNodeMove,
   onNodeSelect,
+  onPlanPointPick,
   scene,
   selectedIds,
   showCompass = true,
@@ -190,6 +193,7 @@ export function ViewerStage({
         onNodeSelect={onNodeSelect}
         root={stageElement}
       />
+      <ViewerStageFloorplanPointPickBridge onPlanPointPick={onPlanPointPick} root={stageElement} />
 
       {showCompass && compassHost === undefined ? (
         <div className="pointer-events-none absolute inset-0 z-30" ref={setInternalCompassHost} />
