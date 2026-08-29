@@ -16,7 +16,6 @@ import { Maximize2, Minus, Plus } from 'lucide-react'
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
   useId,
@@ -656,10 +655,16 @@ export function FloorplanPreview({
     [updateLocalViewBox],
   )
 
-  const onWheel = useCallback(
-    (event: ReactWheelEvent<SVGSVGElement>) => {
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+
+    // React delegates `onWheel` through a passive listener in modern browsers.
+    // Preventing the default from that callback is therefore rejected by
+    // Chrome. Keep the same zoom behavior on a native non-passive listener.
+    const handleWheel = (event: WheelEvent) => {
       event.preventDefault()
-      const rect = event.currentTarget.getBoundingClientRect()
+      const rect = svg.getBoundingClientRect()
       updateLocalViewBox((current) =>
         scaleFloorplanViewBoxBetweenClients(
           current,
@@ -669,9 +674,11 @@ export function FloorplanPreview({
           [event.clientX, event.clientY],
         ),
       )
-    },
-    [updateLocalViewBox],
-  )
+    }
+
+    svg.addEventListener('wheel', handleWheel, { passive: false })
+    return () => svg.removeEventListener('wheel', handleWheel)
+  }, [updateLocalViewBox])
 
   const onPointerDown = useCallback((event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return
@@ -950,7 +957,6 @@ export function FloorplanPreview({
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onWheel={onWheel}
           preserveAspectRatio="xMidYMid meet"
           ref={svgRef}
           style={{
