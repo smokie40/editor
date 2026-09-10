@@ -47,7 +47,8 @@ function itemFunctionSlugs(item: AssetInput): string[] {
  * DB-driven hierarchical Items browse. Roots render as the category tab bar;
  * a selected root with children exposes those children as a secondary chip
  * row. Selecting any node shows items tagged with that node or any descendant.
- * Library / Community / Mine narrows by source on top of the tree selection.
+ * Library / Community / Mine narrows by source on top of the tree selection
+ * when the host keeps the source filter enabled.
  */
 export function FunctionTreePanel({
   functionTree,
@@ -56,6 +57,7 @@ export function FunctionTreePanel({
   searchResults,
   leadingTile,
   emptyState,
+  showSourceFilter = true,
 }: {
   functionTree: FunctionTreeNode[]
   items?: AssetInput[]
@@ -63,12 +65,16 @@ export function FunctionTreePanel({
   searchResults?: AssetInput[] | null
   leadingTile?: React.ReactNode
   emptyState?: React.ReactNode
+  /** Hide Library / Community / Mine when the host already owns catalog scope. */
+  showSourceFilter?: boolean
 }) {
   const [activeRootSlug, setActiveRootSlug] = useState<string | null>(
     functionTree[0]?.slug ?? null,
   )
   const [activeChildSlug, setActiveChildSlug] = useState<string | null>(null)
-  const [activeSource, setActiveSource] = useState<AssetInput['source'] | null>('library')
+  const [activeSource, setActiveSource] = useState<AssetInput['source'] | null>(
+    showSourceFilter ? 'library' : null,
+  )
   const [search, setSearch] = useState('')
 
   const isServerSearch = onSearchChange !== undefined
@@ -79,7 +85,7 @@ export function FunctionTreePanel({
     (activeChildSlug && activeRoot?.children.find((c) => c.slug === activeChildSlug)) || activeRoot
 
   const matchesSource = (item: AssetInput) => {
-    if (!activeSource) return true
+    if (!showSourceFilter || !activeSource) return true
     const itemSource = item.source ?? 'library'
     if (activeSource === 'mine') return itemSource === 'mine'
     if (activeSource === 'library') return itemSource === 'library'
@@ -99,13 +105,13 @@ export function FunctionTreePanel({
       (item) => matchesSource(item) && itemFunctionSlugs(item).some((s) => slugs.has(s)),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, activeNode, activeSource])
+  }, [items, activeNode, activeSource, showSourceFilter])
 
   const searchItems = useMemo(() => {
     if (!(isServerSearch && search && searchResults)) return null
-    return activeSource ? searchResults.filter(matchesSource) : searchResults
+    return showSourceFilter && activeSource ? searchResults.filter(matchesSource) : searchResults
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isServerSearch, search, searchResults, activeSource])
+  }, [isServerSearch, search, searchResults, activeSource, showSourceFilter])
 
   function selectRoot(slug: string) {
     setActiveRootSlug(slug)
@@ -169,11 +175,14 @@ export function FunctionTreePanel({
         </div>
       </TooltipProvider>
 
-      {/* Search + source filter */}
+      {/* Search + optional source filter */}
       <div className="flex shrink-0 flex-col gap-2 border-border/70 border-b p-2">
         <div className="flex items-center gap-1.5">
           <input
-            className="w-1/2 min-w-0 shrink-0 rounded-lg bg-muted px-2.5 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none"
+            className={cn(
+              'min-w-0 shrink-0 rounded-lg bg-muted px-2.5 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none',
+              showSourceFilter ? 'w-1/2' : 'w-full',
+            )}
             onChange={(e) => {
               setSearch(e.target.value)
               onSearchChange?.(e.target.value)
@@ -182,26 +191,28 @@ export function FunctionTreePanel({
             type="text"
             value={search}
           />
-          <div className="flex w-1/2 min-w-0 shrink-0 rounded-lg bg-muted p-0.5">
-            {SOURCE_CHIPS.map((chip) => {
-              const isActive = activeSource === chip.id
-              return (
-                <button
-                  className={cn(
-                    'min-w-0 flex-1 truncate rounded-md px-1 py-1 text-center font-medium text-[10px] transition-colors',
-                    isActive
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                  key={chip.id}
-                  onClick={() => setActiveSource(isActive ? null : chip.id)}
-                  type="button"
-                >
-                  {chip.label}
-                </button>
-              )
-            })}
-          </div>
+          {showSourceFilter && (
+            <div className="flex w-1/2 min-w-0 shrink-0 rounded-lg bg-muted p-0.5">
+              {SOURCE_CHIPS.map((chip) => {
+                const isActive = activeSource === chip.id
+                return (
+                  <button
+                    className={cn(
+                      'min-w-0 flex-1 truncate rounded-md px-1 py-1 text-center font-medium text-[10px] transition-colors',
+                      isActive
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                    key={chip.id}
+                    onClick={() => setActiveSource(isActive ? null : chip.id)}
+                    type="button"
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Child nodes of the active root as a secondary chip row */}
