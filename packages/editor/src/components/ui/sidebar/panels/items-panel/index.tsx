@@ -46,7 +46,8 @@ export function ItemsPanel({
   functionTree?: FunctionTreeNode[]
   /**
    * Library/Community/Mine source chips. The open-source editor has no
-   * uploaded items (only the built-in catalog), so it hides these.
+   * uploaded items (only the built-in catalog), so it hides these. Applies to
+   * both legacy and function-tree browse modes.
    */
   showSourceFilter?: boolean
   /**
@@ -66,6 +67,7 @@ export function ItemsPanel({
         leadingTile={leadingTile}
         onSearchChange={onSearchChange}
         searchResults={searchResults}
+        showSourceFilter={showSourceFilter}
       />
     )
   }
